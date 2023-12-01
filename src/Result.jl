@@ -1,21 +1,35 @@
-abstract type ResultOption end
-struct Ok{T} <: ResultOption
-    val::T
+using SumTypes, Crayons
+
+@sum_type Result{T, E} begin
+    Ok{T}(::T)
+    Err{E}(::E)
 end
 
-struct Err{T} <: ResultOption
-    val::T
+unwrap(result::Result) = @cases result begin
+    Ok(val) => val
+    Err(err) => throw(err)
 end
 
-struct Result{O, T <: Exception} 
-    res::Union{Ok, Err}
+unwrap_or(result::Result, fallback) = @cases result begin
+    Ok(val) => val
+    Err(err) => fallback
 end
 
-unwrap(result::Result) = result.res isa Err ? throw(result.res.val) : result.res.val
-unwrap_or(result::Result, fallback) = result.res isa Err ? fallback : result.res.val
+is_ok(result::Result) = @cases result begin
+    Ok => true
+    Err => false
+end
 
-is_ok(result::Result) = result.res isa Ok
-
-Base.show(io::IO, obj::Ok) = print(io, "OK{$(typeof(obj.val)), $(obj.val)}")
-Base.show(io::IO, obj::Err) = print(io, "Err{$(typeof(obj.val))}")
-Base.show(io::IO, obj::Result) = print(io, "Result{$(obj.res)}")
+SumTypes.show_sumtype(io::IO, result::Result) = @cases result begin
+    Ok(val) => print(
+        io, 
+        Crayon(foreground = :dark_gray)("Result::"), 
+        Crayon(foreground = :green)("OK{$(typeof(val))} $val")
+    )
+    
+    Err(err) => print(
+        io, 
+        Crayon(foreground = :dark_gray)("Result::"), 
+        Crayon(foreground = :red)("Err{$(typeof(err))}")
+    )
+end
